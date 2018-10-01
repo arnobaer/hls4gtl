@@ -1,6 +1,8 @@
 #ifndef gtl_condition_comb_h
 #define gtl_condition_comb_h
 
+#include "../logic/charge_correlation.h"
+
 namespace gtl {
 namespace condition {
 
@@ -59,6 +61,32 @@ ap_uint<1> comb(const T2 requirements[MAX_REQ], const T3 objects[MAX_OBJ])
 {
 #pragma HLS ARRAY_PARTITION variable=requirements complete dim=0
 #pragma HLS ARRAY_PARTITION variable=objects complete dim=0
+
+    ap_uint<1> result = false;
+    ap_uint<1> matrix[MAX_REQ][MAX_OBJ];
+
+    // calculate result matrix
+    comb_matrix<ap_uint<1>, T2, T3, NREQ, SLICE_MIN, SLICE_MAX>(matrix, requirements, objects);
+
+    for (size_t i = SLICE_MIN; i <= SLICE_MAX; i++)
+    {
+#pragma HLS unroll
+        result |= comb_partial<SLICE_MIN, SLICE_MAX>(i, matrix);
+    }
+
+    return result;
+}
+
+/* Combination condition wityh charge correlation */
+template<typename T2, typename T3, size_t NREQ, size_t SLICE_MIN, size_t SLICE_MAX>
+ap_uint<1> comb(const T2 requirements[MAX_REQ], const T3 objects[MAX_OBJ], const gtl::logic::charge_correlation::value_type& chgcorr_cut, const gtl::logic::charge_correlation& chgcorr_logic)
+{
+#pragma HLS ARRAY_PARTITION variable=requirements complete dim=0
+#pragma HLS ARRAY_PARTITION variable=objects complete dim=0
+
+    // TODO
+    // chgcorr_cut is logic::charge_correlation::OS or LS
+    // chgcorr_logic contains matrices ls_double, ls_triple, ls_quad
 
     ap_uint<1> result = false;
     ap_uint<1> matrix[MAX_REQ][MAX_OBJ];
