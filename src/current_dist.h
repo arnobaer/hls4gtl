@@ -10,7 +10,7 @@
 #include "gtl/object.h"
 #include "gtl/cut.h"
 #include "gtl/condition.h"
-
+#include "gtl/logic/charge_correlation.h"
 
 // Includes menu distribution from symbolic link `current_dist`.
 #include "../current_dist/src/impl/menu.hxx"

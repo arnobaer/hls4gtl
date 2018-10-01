@@ -23,6 +23,7 @@ All distinctive components are part of a sub namespace. Currenly there are fife 
 * `gtl::object` ... object containers
 * `gtl::cut` ... object cuts
 * `gtl::condition` ... conditions
+* `gtl::logic` ... additional logic components
 * `gtl::utils` ... generic utilities
 
 ### Comparators
@@ -70,6 +71,16 @@ Current implementation:
 
 * `gtl::condition::comb` ... combination condition
 * `gtl::condition::signal` ... signal condition for centrality and external signals
+
+### Logic
+
+Logic components are implemented as structs, located in the `gtl::logic` namespace.
+
+All logic structs must provide a non const method `void process(...) {...}` with individual function arguments.
+
+Current implementation:
+
+* `gtl::logic::charge_correlation` ... charge correlation logic
 
 ### Utilities
 
