@@ -84,14 +84,14 @@ ap_uint<1> comb(const T2 requirements[MAX_REQ], const T3 objects[MAX_OBJ])
 
 /* Combination condition wityh charge correlation */
 template<typename T2, typename T3, size_t NREQ, size_t SLICE_MIN, size_t SLICE_MAX>
-ap_uint<1> comb(const T2 requirements[MAX_REQ], const T3 objects[MAX_OBJ], const gtl::logic::charge_correlation::value_type& chgcorr_cut, const gtl::logic::charge_correlation& chgcorr_logic)
+ap_uint<1> comb(const T2 requirements[MAX_REQ], const T3 objects[MAX_OBJ], const gtl::logic::charge_correlation<MAX_OBJ>::value_type& chgcorr_cut, const gtl::logic::charge_correlation<MAX_OBJ>& chgcorr_logic)
 {
 #pragma HLS ARRAY_PARTITION variable=requirements complete dim=0
 #pragma HLS ARRAY_PARTITION variable=objects complete dim=0
 
     // TODO
-    // chgcorr_cut is logic::charge_correlation::OS or LS
-    // chgcorr_logic contains matrices ls_double, ls_triple, ls_quad
+    // chgcorr_cut is logic::charge_correlation::IGNORE, OS or LS
+    // chgcorr_logic contains matrices state_double, state_triple, state_quad
 
     ap_uint<1> result = false;
     ap_uint<1> matrix[MAX_REQ][MAX_OBJ];
