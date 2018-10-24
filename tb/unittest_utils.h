@@ -3,7 +3,6 @@
 
 #include "../src/gtl/utils/math.h"
 #include "../src/gtl/utils/range.h"
-#include "../src/gtl/utils/signal_vector.h"
 
 #include <cassert>
 
@@ -56,35 +55,10 @@ void utils_range()
     }
 }
 
-void utils_signal_vector()
-{
-    using namespace gtl::utils;
-
-    {
-        signal_vector<4> v = {0xa}; // 0b1010
-        assert(v.size == 4);
-        assert(v.value == 0xa);
-        assert(v[0] == false);
-        assert(v[1] == true);
-        assert(v[2] == false);
-        assert(v[3] == true);
-    }
-    {
-        signal_vector<4> v = {0x5}; // 0b0101
-        assert(v.size == 4);
-        assert(v.value == 0x5);
-        assert(v[0] == true);
-        assert(v[1] == false);
-        assert(v[2] == true);
-        assert(v[3] == false);
-    }
-}
-
 void utils_all()
 {
     utils_math();
     utils_range();
-    utils_signal_vector();
 }
 
 } // namespace unittest

@@ -13,7 +13,7 @@ struct muon
     typedef ap_uint<4> quality_type;
     typedef ap_int<9> eta_type;
     typedef ap_uint<2> iso_type;
-    typedef ap_uint<2> charge_type;
+    typedef ap_uint<2> charge_type; // TODO split into charge_valid, charge_sign
 
     phi_type phi;
     pt_type pt;

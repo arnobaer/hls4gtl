@@ -6,12 +6,12 @@
 namespace gtl {
 namespace object {
 
-  struct minimumbias
-  {
-      typedef ap_uint<4> count_type;
+struct minimumbias
+{
+    typedef ap_uint<4> count_type;
 
-      count_type count;
-  };
+    count_type count;
+};
 
 } // namespace object
 } // namespace gtl

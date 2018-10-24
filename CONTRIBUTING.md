@@ -90,7 +90,6 @@ Current implementation:
 
 * `gtl::utils::math` ... constant expression preprocessor math functions
 * `gtl::utils::range` ... range container template (minimum, maximum)
-* `gtl::utils::signal_vector` ... signal vector template (access single bits of `ap_uint` vector)
 
 ## Test bench
 
