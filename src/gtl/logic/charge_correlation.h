@@ -22,6 +22,8 @@ struct charge_correlation
     typedef size_t size_type;
 
     static const size_type size = N;
+    static const size_type sign_bit = 0; // charge[0] is sign bit
+    static const size_type valid_bit = 1; // charge[1] is valid bit
 
     typedef value_type double_type[size][size];
     typedef value_type triple_type[size][size][size];
@@ -38,6 +40,40 @@ struct charge_correlation
     triple_type state_triple;
     quad_type state_quad;
 
+    // calculates charge state for two objects
+    template<typename T>
+    value_type state(const T objects[size], size_t a, size_t b)
+    {
+        if (objects[a].charge[valid_bit] and objects[b].charge[valid_bit])
+        {
+            if (objects[a].charge[sign_bit] == objects[b].charge[sign_bit]) // is like sign?
+                return LS;
+            else
+                return OS;
+        }
+        return IGNORE;
+    }
+
+    // calculates charge state for three objects
+    template<typename T>
+    value_type state(const T objects[size], size_t a, size_t b, size_t c)
+    {
+        const value_type lhs = state(a, b);
+        if (lhs == state(b, c))
+            return lhs;
+        return IGNORE;
+    }
+
+    // calculates charge state for four objects
+    template<typename T>
+    value_type state(const T objects[size], size_t a, size_t b, size_t c, size_t d)
+    {
+        const value_type lhs = state(a, b, c);
+        if (lhs == state(c, d))
+            return lhs;
+        return IGNORE;
+    }
+
     template<typename T>
     void process(const T objects[size])
     {
@@ -46,8 +82,8 @@ struct charge_correlation
         typedef ap_uint<bitwidth<size>::value> iterator_type;
 
         // charge bits
-        static const size_type sign = 0;
-        static const size_type valid = 1;
+        static const size_type sign = 0; // charge[0] is sign bit
+        static const size_type valid = 1; // charge[1] is valid bit
 
         for (iterator_type i = 0; i < size; ++i)
         {
@@ -55,53 +91,20 @@ struct charge_correlation
             for (iterator_type j = 0; j < size; ++j)
             {
 #pragma HLS unroll
-                state_double[i][j] = IGNORE;
-                if (objects[i].charge[valid] and objects[j].charge[valid])
-                {
-                    if (objects[i].charge[sign] == objects[j].charge[sign])
-                    {
-                        state_double[i][j] = LS;
-                    }
-                    else
-                    {
-                        state_double[i][j] = OS;
-                    }
-                }
+                // calculate double charge states
+                state_double[i][j] = state(objects, i, j);
 
                 for (iterator_type k = 0; k < size; ++k)
                 {
 #pragma HLS unroll
-                    state_triple[i][j][k] = IGNORE;
-                    if (objects[i].charge[valid] and objects[j].charge[valid] and objects[k].charge[valid])
-                    {
-                        if (objects[i].charge[sign] == objects[j].charge[sign] and
-                            objects[i].charge[sign] == objects[k].charge[sign])
-                        {
-                            state_triple[i][j][k] = LS;
-                        }
-                        else
-                        {
-                            state_triple[i][j][k] = OS;
-                        }
-                    }
+                    // calculate triple charge states
+                    state_triple[i][j][k] = state(objects, i, j, k);
 
                     for (iterator_type l = 0; l < size; ++l)
                     {
 #pragma HLS unroll
-                        state_quad[i][j][k][l] = IGNORE;
-                        if (objects[i].charge[valid] and objects[j].charge[valid] and objects[k].charge[valid] and objects[l].charge[valid])
-                        {
-                            if (objects[i].charge[sign] == objects[j].charge[sign] and
-                                objects[i].charge[sign] == objects[k].charge[sign] and
-                                objects[i].charge[sign] == objects[l].charge[sign])
-                            {
-                                state_quad[i][j][k][l] = LS;
-                            }
-                            else
-                            {
-                                state_quad[i][j][k][l] = OS;
-                            }
-                        }
+                        // calculate quad charge states
+                        state_quad[i][j][k][l] = state(objects, i, j, k, l);
                     }
                 }
             }
