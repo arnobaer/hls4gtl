@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 from glob import glob
+from xml.dom import minidom
+
 import argparse
 import logging
 import shutil
@@ -12,6 +14,7 @@ class Default:
     current_dist = 'current_dist'
     vivado_hls = 'vivado_hls'
     project = 'hls_impl'
+    solution = 'solution1'
 
 class Status:
     def __init__(self, name, value=False, style=None, hint=None):
@@ -54,6 +57,38 @@ def locate_testvectors(path):
             events = sum(1 for line in fp)
         testvectors.append((filename, events))
     return testvectors
+
+def auto_testvectors(args):
+    """Retruns list of test vectors either supplied by argument or located."""
+    testvectors = args.testvector
+    # Look for test vectors...
+    if not testvectors:
+        dist_dir = os.readlink(args.current_dist)
+        for testvector, _ in locate_testvectors(dist_dir):
+            testvectors.append(testvector)
+    if not testvectors:
+        logging.warning("running without testvectors (none available)")
+    return testvectors
+
+def csynth_report(filename):
+    """Prints csynth report (latency)."""
+    doc = minidom.parse(filename)
+    node = doc.getElementsByTagName('PerformanceEstimates')[0]
+    items = [
+        # XML tag, expected value
+        ['Best-caseLatency', 0],
+        ['Average-caseLatency', 0],
+        ['Worst-caseLatency', 0],
+        ['Interval-min', 1],
+        ['Interval-max', 1],
+    ]
+    logging.info("Latency report:")
+    for item in items:
+        value = node.getElementsByTagName(item[0])[0].firstChild.nodeValue
+        if int(value) != item[1]:
+            logging.warning("{}: {} [expected: {}]".format(item[0], value, item[1]))
+        else:
+            logging.info("{}: {}".format(item[0], value))
 
 def check_call(args):
     """Call system command, handles OSErrors (file not found)."""
@@ -151,16 +186,7 @@ def cmd_auto_create_project(args):
 def cmd_csim(args):
     cmd_auto_create_project(args)
     context='config/csim.tcl'
-    testvectors = []
-    try: testvectors = args.testvector
-    except: pass
-    # Look for test vectors...
-    if not testvectors:
-        dist_dir = os.readlink(args.current_dist)
-        for testvector, events in locate_testvectors(dist_dir):
-            testvectors.append(testvector)
-    if not testvectors:
-        logging.warning("running CSIM without testvectors (none available)")
+    testvectors = auto_testvectors(args)
     command = [args.vivado_hls, context]
     command.extend(testvectors)
     check_call(command)
@@ -170,13 +196,16 @@ def cmd_csynth(args):
     context='config/csynth.tcl'
     command = [args.vivado_hls, context]
     check_call(command)
+    csynth_report(os.path.join(Default.project, Default.solution, 'syn/report/csynth.xml'))
 
 def cmd_cosim(args):
     cmd_auto_create_project(args)
     cmd_csim(args)
     cmd_csynth(args)
     context='config/cosim.tcl'
+    testvectors = auto_testvectors(args)
     command = [args.vivado_hls, context]
+    command.extend(testvectors)
     check_call(command)
 
 def cmd_export(args):
