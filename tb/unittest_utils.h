@@ -9,11 +9,11 @@
 
 namespace unittest {
 
-void utils_iterator
+void utils_iterator()
 {
-    using gtl;
+    using namespace gtl;
 
-    ap_uint<8> values[4] = {42, 7, 0, 28};
+    size_t values[4] = {42, 7, 0, 28};
     assert(utils::size(values) == 4);
     assert(utils::first(values) == 42);
     assert(utils::last(values) == 28);
@@ -21,7 +21,7 @@ void utils_iterator
 
 void utils_math()
 {
-    using gtl::utils;
+    using namespace gtl::utils;
 
     assert((math::pow<0, 0>::value) == 1);
     assert((math::pow<0, 1>::value) == 0);
@@ -68,6 +68,7 @@ void utils_range()
 
 void utils_all()
 {
+    utils_iterator();
     utils_math();
     utils_range();
 }
