@@ -1,7 +1,7 @@
 #ifndef tb_unittest_utils_h
 #define tb_unittest_utils_h
 
-#include "../src/gtl/utils/iterator.h"
+#include "../src/gtl/utils/array.h"
 #include "../src/gtl/utils/math.h"
 #include "../src/gtl/utils/range.h"
 
@@ -9,14 +9,21 @@
 
 namespace unittest {
 
-void utils_iterator()
+void utils_array()
 {
     using namespace gtl;
 
-    size_t values[4] = {42, 7, 0, 28};
-    assert(utils::size(values) == 4);
-    assert(utils::first(values) == 42);
-    assert(utils::last(values) == 28);
+    utils::array<size_t, 4> array = {42, 7, 0, 28};
+
+    assert(array.size == 4);
+
+    assert(array.front() == 42);
+    assert(array.back() == 28);
+
+    assert(array[0] == 42);
+    assert(array[1] == 7);
+    assert(array[2] == 0);
+    assert(array[3] == 28);
 }
 
 void utils_math()
@@ -68,7 +75,7 @@ void utils_range()
 
 void utils_all()
 {
-    utils_iterator();
+    utils_array();
     utils_math();
     utils_range();
 }

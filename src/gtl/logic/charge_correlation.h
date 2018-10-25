@@ -30,10 +30,11 @@ struct charge_correlation
     typedef value_type quad_type[size][size][size][size];
 
     // States
-    enum {
-      IGNORE,
-      OS,
-      LS,
+    enum charge_correlation_type
+    {
+        IGNORE,
+        LIKE_SIGN,
+        OPPOSITE_SIGN,
     };
 
     double_type state_double;
@@ -42,40 +43,40 @@ struct charge_correlation
 
     // calculates charge state for two objects
     template<typename T>
-    value_type state(const T objects[size], size_t a, size_t b)
+    value_type state(const T& objects, size_t a, size_t b)
     {
         if (objects[a].charge[valid_bit] and objects[b].charge[valid_bit])
         {
             if (objects[a].charge[sign_bit] == objects[b].charge[sign_bit]) // is like sign?
-                return LS;
+                return LIKE_SIGN;
             else
-                return OS;
+                return OPPOSITE_SIGN;
         }
         return IGNORE;
     }
 
     // calculates charge state for three objects
     template<typename T>
-    value_type state(const T objects[size], size_t a, size_t b, size_t c)
+    value_type state(const T& objects, size_t a, size_t b, size_t c)
     {
-        const value_type lhs = state(a, b);
-        if (lhs == state(b, c))
+        const value_type lhs = state(objects, a, b);
+        if (lhs == state(objects, b, c))
             return lhs;
         return IGNORE;
     }
 
     // calculates charge state for four objects
     template<typename T>
-    value_type state(const T objects[size], size_t a, size_t b, size_t c, size_t d)
+    value_type state(const T& objects, size_t a, size_t b, size_t c, size_t d)
     {
-        const value_type lhs = state(a, b, c);
-        if (lhs == state(c, d))
+        const value_type lhs = state(objects, a, b, c);
+        if (lhs == state(objects, c, d))
             return lhs;
         return IGNORE;
     }
 
     template<typename T>
-    void process(const T objects[size])
+    void process(const T& objects)
     {
         // Almost insane optimization? Does it gain something?
         using utils::math::bitwidth;

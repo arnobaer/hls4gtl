@@ -3,110 +3,155 @@
 
 #include "../logic/charge_correlation.h"
 
+#include "../utils/array.h"
+#include "../utils/matrix.h"
+
 namespace gtl {
 namespace condition {
 
-template<typename T, size_t X, size_t Y>
-void init_2d(T data[X][Y], const T value)
-{
-    for (size_t i = 0; i < X; ++i)
-#pragma HLS UNROLL
-        for (size_t j = 0; j < Y; ++j)
-#pragma HLS UNROLL
-            data[i][j] = value;
-}
-
-template<typename T1, typename T2, typename T3, size_t NREQ, size_t SLICE_MIN, size_t SLICE_MAX>
-void comb_matrix(T1 data[MAX_REQ][MAX_OBJ], const T2 requirements[MAX_REQ], const T3 objects[MAX_OBJ])
-{
-#pragma HLS INTERFACE ap_ctrl_none port=data
-#pragma HLS ARRAY_PARTITION variable=requirements complete dim=0
-#pragma HLS ARRAY_PARTITION variable=objects complete dim=0
-#pragma HLS ARRAY_PARTITION variable=data complete dim=0
-
-    init_2d<ap_uint<1>, MAX_REQ, MAX_OBJ>(data, 0x1);
-    for (size_t i = 0; i < NREQ; i++)
-#pragma HLS UNROLL
-        for (size_t j = SLICE_MIN; j <= SLICE_MAX; j++)
-#pragma HLS UNROLL
-                data[i][j] = requirements[i].comp(objects[j]);
-}
-
-/* Workaround to trick HLS loop unrolling */
 template<size_t SLICE_MIN, size_t SLICE_MAX>
-ap_uint<1> comb_partial(const size_t i, const ap_uint<1> matrix[MAX_REQ][MAX_OBJ])
+struct comb
 {
-#pragma HLS INTERFACE ap_ctrl_none port=return
+    typedef size_t size_type;
+    typedef ap_uint<1> result_type;
 
-    ap_uint<1> result = false;
+    static const size_type slice_minimum = SLICE_MIN;
+    static const size_type slice_maximum = SLICE_MAX;
 
-    for (size_t j = SLICE_MIN; j <= SLICE_MAX; j++)
+    template<typename T1, typename T2, typename T3>
+    static void calc_matrix(const T1& cuts, const T2& objects, T3& matrix)
     {
+#pragma HLS INTERFACE ap_ctrl_none port=data
+#pragma HLS ARRAY_PARTITION variable=cuts.data complete dim=0
+#pragma HLS ARRAY_PARTITION variable=objects.data complete dim=0
+#pragma HLS ARRAY_PARTITION variable=matrix.data complete dim=0
+
+        typedef T1 cuts_type;
+
+        matrix.init(true);
+
+        for (size_type i = 0; i < cuts_type::size; ++i)
 #pragma HLS UNROLL
-        for (size_t k = SLICE_MIN; k <= SLICE_MAX; k++)
+            for (size_type j = slice_minimum; j <= slice_maximum; ++j)
+#pragma HLS UNROLL
+                matrix.data[i][j] = cuts[i].comp(objects[j]);
+    }
+
+    template<typename T>
+    static result_type reduce_matrix_single(const T& matrix)
+    {
+        result_type result = false;
+        for (size_type i = slice_minimum; i <= slice_maximum; ++i)
         {
 #pragma HLS UNROLL
-            for (size_t l = SLICE_MIN; l <= SLICE_MAX; l++)
+            result |= matrix.data[0][i];
+        }
+        return result;
+    }
+
+    template<typename T>
+    static result_type reduce_matrix_double(const T& matrix)
+    {
+        result_type result = false;
+        for (size_type i = slice_minimum; i <= slice_maximum; ++i)
+        {
+#pragma HLS UNROLL
+            for (size_type j = slice_minimum; j <= slice_maximum; ++j)
             {
 #pragma HLS UNROLL
-                if (j != i and k != i and k != j and l != i and l != j and l != k)
+                if (i != j)
                 {
-                    result |= matrix[0][i] and matrix[1][j] and matrix[2][k] and matrix[3][l];
+                    result |= matrix.data[0][i] and matrix.data[1][j];
                 }
             }
         }
+        return result;
     }
-    return result;
-}
 
-/* Combination condition */
-template<typename T2, typename T3, size_t NREQ, size_t SLICE_MIN, size_t SLICE_MAX>
-ap_uint<1> comb(const T2 requirements[MAX_REQ], const T3 objects[MAX_OBJ])
-{
-#pragma HLS INTERFACE ap_ctrl_none port=return
-#pragma HLS ARRAY_PARTITION variable=requirements complete dim=0
-#pragma HLS ARRAY_PARTITION variable=objects complete dim=0
-
-    ap_uint<1> result = false;
-    ap_uint<1> matrix[MAX_REQ][MAX_OBJ];
-
-    // calculate result matrix
-    comb_matrix<ap_uint<1>, T2, T3, NREQ, SLICE_MIN, SLICE_MAX>(matrix, requirements, objects);
-
-    for (size_t i = SLICE_MIN; i <= SLICE_MAX; i++)
+    template<typename T>
+    static result_type reduce_matrix_triple(const T& matrix)
     {
+        result_type result = false;
+        for (size_type i = slice_minimum; i <= slice_maximum; ++i)
+        {
 #pragma HLS UNROLL
-        result |= comb_partial<SLICE_MIN, SLICE_MAX>(i, matrix);
+            for (size_type j = slice_minimum; j <= slice_maximum; ++j)
+            {
+#pragma HLS UNROLL
+                for (size_type k = slice_minimum; k <= slice_maximum; ++k)
+                {
+#pragma HLS UNROLL
+                    if (i != j and j != k and i != k)
+                    {
+                        result |= matrix.data[0][i] and matrix.data[1][j] and matrix.data[2][k];
+                    }
+                }
+            }
+        }
+        return result;
     }
 
-    return result;
-}
-
-/* Combination condition wityh charge correlation */
-template<typename T2, typename T3, size_t NREQ, size_t SLICE_MIN, size_t SLICE_MAX>
-ap_uint<1> comb(const T2 requirements[MAX_REQ], const T3 objects[MAX_OBJ], const gtl::logic::charge_correlation<MAX_OBJ>::value_type& chgcorr_cut, const gtl::logic::charge_correlation<MAX_OBJ>& chgcorr_logic)
-{
-#pragma HLS ARRAY_PARTITION variable=requirements complete dim=0
-#pragma HLS ARRAY_PARTITION variable=objects complete dim=0
-
-    // TODO
-    // chgcorr_cut is logic::charge_correlation::IGNORE, OS or LS
-    // chgcorr_logic contains matrices state_double, state_triple, state_quad
-
-    ap_uint<1> result = false;
-    ap_uint<1> matrix[MAX_REQ][MAX_OBJ];
-
-    // calculate result matrix
-    comb_matrix<ap_uint<1>, T2, T3, NREQ, SLICE_MIN, SLICE_MAX>(matrix, requirements, objects);
-
-    for (size_t i = SLICE_MIN; i <= SLICE_MAX; i++)
+    template<typename T>
+    static result_type reduce_matrix_quad_partial(size_t i, const T& matrix)
     {
-#pragma HLS unroll
-        result |= comb_partial<SLICE_MIN, SLICE_MAX>(i, matrix);
+        result_type result = false;
+        for (size_type j = slice_minimum; j <= slice_maximum; ++j)
+        {
+#pragma HLS UNROLL
+            for (size_type k = slice_minimum; k <= slice_maximum; ++k)
+            {
+#pragma HLS UNROLL
+                for (size_type l = slice_minimum; l <= slice_maximum; ++l)
+                {
+#pragma HLS UNROLL
+                    if (i != j and j != k and k != l and i != k and i != l)
+                    {
+                        result |= matrix.data[0][i] and matrix.data[1][j] and matrix.data[2][k] and matrix.data[3][l];
+                    }
+                }
+            }
+        }
+        return result;
     }
 
-    return result;
-}
+    template<typename T>
+    static result_type reduce_matrix_quad(const T& matrix)
+    {
+        result_type result = false;
+        for (size_type i = slice_minimum; i <= slice_maximum; ++i)
+        {
+#pragma HLS UNROLL
+            result |= reduce_matrix_quad_partial(i, matrix);
+        }
+        return result;
+    }
+
+    template<typename T1, typename T2>
+    static result_type process(const T1& cuts, const T2& objects)
+    {
+#pragma HLS INTERFACE ap_ctrl_none port=return
+#pragma HLS ARRAY_PARTITION variable=cuts.data complete dim=0
+#pragma HLS ARRAY_PARTITION variable=objects.data complete dim=0
+
+        typedef T1 cuts_type;
+        typedef T2 objects_type;
+
+        utils::matrix<result_type, cuts_type::size, objects_type::size> matrix;
+
+        // calculate matrix
+        calc_matrix(cuts, objects, matrix);
+
+        // reduce matrix
+        switch (cuts_type::size)
+        {
+            case 1: return reduce_matrix_single(matrix);
+            case 2: return reduce_matrix_double(matrix);
+            case 3: return reduce_matrix_triple(matrix);
+            case 4: return reduce_matrix_quad(matrix);
+            default: return false;
+        }
+    }
+};
 
 } // namespace condition
 } // namespace gtl

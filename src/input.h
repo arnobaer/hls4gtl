@@ -6,31 +6,28 @@
 #include "definitions.h"
 
 #include "gtl/object.h"
-
-using namespace gtl;
+#include "gtl/utils/array.h"
 
 // TODO review
 
 struct in_data_t
 {
-    typedef object::eg eg_type;
-    typedef object::jet jet_type;
-    typedef object::tau tau_type;
-    typedef object::muon muon_type;
-    typedef object::asymmetry asymmetry_type;
-    typedef object::centrality centrality_type;
-    typedef object::external external_type;
+    typedef gtl::object::eg eg_type;
+    typedef gtl::object::jet jet_type;
+    typedef gtl::object::tau tau_type;
+    typedef gtl::object::muon muon_type;
+    typedef gtl::object::asymmetry asymmetry_type;
+    typedef gtl::object::centrality centrality_type;
+    typedef gtl::object::external external_type;
     typedef size_t size_type;
 
-    const static size_type EG_SIZE = 12;
-    const static size_type JET_SIZE = 12;
-    const static size_type TAU_SIZE = 12;
-    const static size_type MUON_SIZE = 8;
+    static const size_type calo_size = 12;
+    static const size_type muon_size = 8;
 
-    eg_type eg[EG_SIZE];
-    jet_type jet[JET_SIZE];
-    tau_type tau[TAU_SIZE];
-    muon_type muon[MUON_SIZE];
+    gtl::utils::array<eg_type, calo_size> eg;
+    gtl::utils::array<jet_type, calo_size> jet;
+    gtl::utils::array<tau_type, calo_size> tau;
+    gtl::utils::array<muon_type, muon_size> muon;
     asymmetry_type asymmetry_et;
     asymmetry_type asymmetry_ht;
     asymmetry_type asymmetry_ethf;

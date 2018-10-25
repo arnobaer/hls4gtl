@@ -12,11 +12,15 @@ void algos(const in_data_t& in_data, ap_uint<1> algo[N_ALGORITHMS])
 #pragma HLS INTERFACE ap_ctrl_none port=return
 
     // create static logic
+    static ::gtl::logic::charge_correlation<in_data_t::muon_size> charge_correlation_logic;
     static ::impl::conditions::logic conditions_logic = {};
     static ::impl::seeds::logic seeds_logic = {};
 
+    // update charge correlations
+    charge_correlation_logic.process(in_data.muon);
+
     // update condition states
-    conditions_logic.process(in_data);
+    conditions_logic.process(in_data, charge_correlation_logic);
 
     // update seed states
     seeds_logic.process(conditions_logic);
