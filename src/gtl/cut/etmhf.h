@@ -1,12 +1,12 @@
 #ifndef gtl_cut_etmhf_h
 #define gtl_cut_etmhf_h
 
-#include "../object/etmhfhf.h"
+#include "../object/etmhf.h"
 
 #include "../comparator/pt.h"
 #include "../comparator/phi.h"
 
-// #include "../utils/range.h"
+#include "../utils/range.h"
 
 #include "../../definitions.h"
 
@@ -16,7 +16,7 @@
 namespace gtl {
 namespace cut {
 
-struct etmhfhf
+struct etmhf
 {
     typedef object::etmhf object_type;
     typedef utils::range<object_type::phi_type> phi_range_type;
