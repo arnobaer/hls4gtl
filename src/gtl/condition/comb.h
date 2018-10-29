@@ -2,6 +2,7 @@
 #define gtl_condition_comb_h
 
 #include "../logic/charge_correlation.h"
+#include "../logic/combination.h"
 
 #include "../utils/array.h"
 #include "../utils/matrix.h"
@@ -28,102 +29,16 @@ struct comb
 
         typedef T1 cuts_type;
 
-        matrix.init(true);
+        //matrix.fill(true);
 
         for (size_type i = 0; i < cuts_type::size; ++i)
+        {
+            matrix[i].fill(true);
 #pragma HLS UNROLL
             for (size_type j = slice_minimum; j <= slice_maximum; ++j)
 #pragma HLS UNROLL
-                matrix.data[i][j] = cuts[i].comp(objects[j]);
-    }
-
-    template<typename T>
-    static result_type reduce_matrix_single(const T& matrix)
-    {
-        result_type result = false;
-        for (size_type i = slice_minimum; i <= slice_maximum; ++i)
-        {
-#pragma HLS UNROLL
-            result |= matrix.data[0][i];
+                matrix[i][j] = cuts[i].comp(objects[j]);
         }
-        return result;
-    }
-
-    template<typename T>
-    static result_type reduce_matrix_double(const T& matrix)
-    {
-        result_type result = false;
-        for (size_type i = slice_minimum; i <= slice_maximum; ++i)
-        {
-#pragma HLS UNROLL
-            for (size_type j = slice_minimum; j <= slice_maximum; ++j)
-            {
-#pragma HLS UNROLL
-                if (i != j)
-                {
-                    result |= matrix.data[0][i] and matrix.data[1][j];
-                }
-            }
-        }
-        return result;
-    }
-
-    template<typename T>
-    static result_type reduce_matrix_triple(const T& matrix)
-    {
-        result_type result = false;
-        for (size_type i = slice_minimum; i <= slice_maximum; ++i)
-        {
-#pragma HLS UNROLL
-            for (size_type j = slice_minimum; j <= slice_maximum; ++j)
-            {
-#pragma HLS UNROLL
-                for (size_type k = slice_minimum; k <= slice_maximum; ++k)
-                {
-#pragma HLS UNROLL
-                    if (i != j and j != k and i != k)
-                    {
-                        result |= matrix.data[0][i] and matrix.data[1][j] and matrix.data[2][k];
-                    }
-                }
-            }
-        }
-        return result;
-    }
-
-    template<typename T>
-    static result_type reduce_matrix_quad_partial(size_t i, const T& matrix)
-    {
-        result_type result = false;
-        for (size_type j = slice_minimum; j <= slice_maximum; ++j)
-        {
-#pragma HLS UNROLL
-            for (size_type k = slice_minimum; k <= slice_maximum; ++k)
-            {
-#pragma HLS UNROLL
-                for (size_type l = slice_minimum; l <= slice_maximum; ++l)
-                {
-#pragma HLS UNROLL
-                    if (i != j and j != k and k != l and i != k and i != l)
-                    {
-                        result |= matrix.data[0][i] and matrix.data[1][j] and matrix.data[2][k] and matrix.data[3][l];
-                    }
-                }
-            }
-        }
-        return result;
-    }
-
-    template<typename T>
-    static result_type reduce_matrix_quad(const T& matrix)
-    {
-        result_type result = false;
-        for (size_type i = slice_minimum; i <= slice_maximum; ++i)
-        {
-#pragma HLS UNROLL
-            result |= reduce_matrix_quad_partial(i, matrix);
-        }
-        return result;
     }
 
     template<typename T1, typename T2>
@@ -136,20 +51,24 @@ struct comb
         typedef T1 cuts_type;
         typedef T2 objects_type;
 
-        utils::matrix<result_type, cuts_type::size, objects_type::size> matrix;
+        static const size_t dim = cuts_type::size;
 
-        // calculate matrix
+        utils::array<utils::array<result_type, objects_type::size>, cuts_type::size> matrix;
         calc_matrix(cuts, objects, matrix);
 
-        // reduce matrix
+        // NOTE
+        //
+        // logic::combination<cuts_type::size> will only work with C++11 constexpr feature!
+        //
+        // Workaround:
         switch (cuts_type::size)
         {
-            case 1: return reduce_matrix_single(matrix);
-            case 2: return reduce_matrix_double(matrix);
-            case 3: return reduce_matrix_triple(matrix);
-            case 4: return reduce_matrix_quad(matrix);
-            default: return false;
+            case 1: return logic::combination<1>::slice<slice_minimum, slice_maximum>::find(matrix);
+            case 2: return logic::combination<2>::slice<slice_minimum, slice_maximum>::find(matrix);
+            case 3: return logic::combination<3>::slice<slice_minimum, slice_maximum>::find(matrix);
+            case 4: return logic::combination<4>::slice<slice_minimum, slice_maximum>::find(matrix);
         }
+        return false;
     }
 };
 

@@ -57,6 +57,16 @@ struct array
    {
        return data[size - 1];
    }
+
+   // Fill array with value
+   void fill(const value_type& value)
+   {
+      for (size_type i = 0; i < size; ++i)
+      {
+#pragma HLS UNROLL
+          data[i] = value;
+      }
+   }
 };
 
 } // namespace utils
